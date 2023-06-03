@@ -1,0 +1,52 @@
+exporter:
+  source: terraform-aws-modules/lambda/aws
+  version: 4.18.0
+  dependencies: []
+  inputs:
+    function_name: metric-agent
+    image_uri: shidaxi/script-exporter-foundry:2.12.0-debian-11
+    package_type: Image
+    architectures:
+    - arm64
+    allowed_triggers:
+      cron:
+        principal: "events.amazonaws.com"
+        source_arn: module.eventbridge.eventbridge_rule_arns["crons"]
+
+agent:
+  source: terraform-aws-modules/lambda/aws
+  version: 4.18.0
+  dependencies: 
+  - config_path: ../exporter
+    mock_outputs:
+  inputs:
+    function_name: metric-agent
+    image_uri: shidaxi/script-exporter-foundry:2.12.0-debian-11
+    package_type: Image
+    architectures:
+    - arm64
+    allowed_triggers:
+      cron:
+        principal: "events.amazonaws.com"
+        source_arn: module.eventbridge.eventbridge_rule_arns["crons"]
+
+cron:
+  source: terraform-aws-modules/eventbridge/aws
+  version: 2.1.0
+  dependencies: 
+  - config_path: ../exporter
+    mock_outputs:
+  - config_path: ../agent
+    mock_outputs:
+  inputs:
+    create_bus: false
+    rules:
+      crons:
+        - name: metric-cron
+          arn: 
+    targets:
+      crons:
+        - name: lambda-loves-cron
+          arn: module.lambda.lambda_function_arn
+          input: 
+            job: cron-by-rate

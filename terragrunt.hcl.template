@@ -1,0 +1,21 @@
+include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "{{ (ds "ds").source }}"
+  version = "{{ (ds "ds").version }}"
+}
+
+{{- range $i, $e := (ds "ds").dependencies }}
+dependency {
+  yamldecode(file("${get_terragrunt_dir()}/dependency.{{ $i }}.yaml")),
+}
+{{- end }}
+
+inputs = merge(
+  yamldecode(file(find_in_parent_folders("account.yaml"))),
+  yamldecode(file(find_in_parent_folders("region.yaml"))),
+  yamldecode(file(find_in_parent_folders("env.yaml"))),
+  yamldecode(file("${get_terragrunt_dir()}/inputs.yaml")),
+)
